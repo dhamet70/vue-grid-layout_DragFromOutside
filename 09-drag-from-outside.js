@@ -11,24 +11,22 @@ var testLayout = [
     {"x":5,"y":10,"w":4,"h":3,"i":"9"},
 ];
 
+let DragPos = {"x":null,"y":null,"w":1,"h":1,"i":null};
 new Vue({
     el: '#app',
     data: {
         layout: testLayout,
     },
     methods: {
+        dragstart:function(e){
+        },
         drag:function(e){
-            let divGridLayout=document.getElementById('content'),
-            divGridLayout_left = divGridLayout.getBoundingClientRect().left + divGridLayout.ownerDocument.defaultView.pageXOffset-window.window.scrollX,
-            divGridLayout_top = divGridLayout.getBoundingClientRect().top + divGridLayout.ownerDocument.defaultView.pageYOffset-window.window.scrollY,  
-            divGridLayout_width = divGridLayout.getBoundingClientRect().width,
-            divGridLayout_height = divGridLayout.getBoundingClientRect().height
-            ;      
+            
+            let parentRect = document.getElementById('content').getBoundingClientRect();
             let mouseInGrid=false;
-            if (((e.x>divGridLayout_left) && (e.x<divGridLayout_left+divGridLayout_width)) 
-               && ((e.y>divGridLayout_top)  && (e.y<divGridLayout_top+divGridLayout_height)))
-                    mouseInGrid=true;
-
+            if (((e.x>parentRect.left) && (e.x<parentRect.right)) && ((e.y>parentRect.top)  && (e.y<parentRect.bottom))){
+                mouseInGrid=true;
+            }
             if (mouseInGrid==true && (this.layout.findIndex(item => item.i === 'drop')) == -1){
                 this.layout.push({
                     x: (this.layout.length * 2) % (this.colNum || 12),
@@ -36,67 +34,54 @@ new Vue({
                     w: 1,
                     h: 1,
                     i: 'drop',
-                });     
+                }); 
             }
-            setTimeout(() => {  
-                let index=this.layout.findIndex(item => item.i === 'drop');
-                if (index!=-1){
+            let index=this.layout.findIndex(item => item.i === 'drop');
+            if (index!=-1){
+                try {  
                     this.$refs.gridLayout.$children[this.layout.length].$refs.item.style.display="none";
-                    let el=this.$refs.gridLayout.$children[index]; 
-                    
-                    el.dragging={"left":e.x-divGridLayout_left,"top":e.y-divGridLayout_top};
-                    let new_pos=el.calcXY(e.y-divGridLayout_top, e.x-divGridLayout_left);
-                    
-                    if (mouseInGrid==true){
-                        this.$refs.gridLayout.dragEvent('dragstart', 'drop', new_pos.x,new_pos.y,1,1);
-                    }
-                    if (mouseInGrid==false){
-                        this.$refs.gridLayout.dragEvent('dragend', 'drop', new_pos.x,new_pos.y,1,1);
-                        this.layout = this.layout.filter(obj => obj.i !=='drop');  
-                    }
+                } catch {
                 }
-            }, 100);
-        },  
-        dragstart:function(e){
-            e.dataTransfer.setData('text/plain', ''); 
+                let el=this.$refs.gridLayout.$children[index]; 
+                el.dragging={"top":e.y-parentRect.top,"left":e.x-parentRect.left};
+                let new_pos=el.calcXY(e.y-parentRect.top, e.x-parentRect.left);
+               
+                if (mouseInGrid==true){
+                    this.$refs.gridLayout.dragEvent('dragstart', 'drop', new_pos.x,new_pos.y,1,1); 
+                    DragPos.i=String(index); DragPos.x=this.layout[index].x; DragPos.y=this.layout[index].y;  
+                }
+                if (mouseInGrid==false){
+                    this.$refs.gridLayout.dragEvent('dragend', 'drop', new_pos.x,new_pos.y,1,1);
+                    this.layout = this.layout.filter(obj => obj.i !=='drop');
+                }
+            }  
+            
         },  
         dragend:function(e){
-            let divGridLayout=document.getElementById('content'),
-            divGridLayout_left = divGridLayout.getBoundingClientRect().left + divGridLayout.ownerDocument.defaultView.pageXOffset-window.window.scrollX,
-            divGridLayout_top = divGridLayout.getBoundingClientRect().top + divGridLayout.ownerDocument.defaultView.pageYOffset-window.window.scrollY,  
-            divGridLayout_width = divGridLayout.getBoundingClientRect().width,
-            divGridLayout_height = divGridLayout.getBoundingClientRect().height
-            ;       
+            let parentRect = document.getElementById('content').getBoundingClientRect();
             let mouseInGrid=false;
-            if (((e.x>divGridLayout_left) && (e.x<divGridLayout_left+divGridLayout_width)) 
-            && ((e.y>divGridLayout_top)  && (e.y<divGridLayout_top+divGridLayout_height)))
-                    mouseInGrid=true;
-
+            if (((e.x>parentRect.left) && (e.x<parentRect.right)) && ((e.y>parentRect.top)  && (e.y<parentRect.bottom))){
+                mouseInGrid=true;
+            }
             if (mouseInGrid==true){
-                let el=this.$refs.gridLayout.$children[this.layout.length]; 
-                el.dragging={"left":e.x-divGridLayout_left,"top":e.y-divGridLayout_top};
-                let new_pos=el.calcXY(e.y-divGridLayout_top, e.x-divGridLayout_left);
-                this.$refs.gridLayout.dragEvent('dragend', 'drop', new_pos.x,new_pos.y,1,1);
-                index=this.layout.length;
-                
-                alert(`Dropped element props:\n${JSON.stringify(this.$refs.gridLayout.$children[index], ['x', 'y', 'w', 'h'], 2)}`);   
-
-                /* UNCOMMENT the bottom lines IF YOU WANT to add an item */
-                /*
-                x=this.$refs.gridLayout.$children[index].x;
-                y=this.$refs.gridLayout.$children[index].y;
-                this.layout.push({
-                    x: x,
-                    y: y,
-                    w: 1,
-                    h: 1,
-                    i: String(index-1),
-                });
-                setTimeout(() => {  
+                    alert(`Dropped element props:\n${JSON.stringify(DragPos, ['x', 'y', 'w', 'h'], 2)}`); 
+                    
+                    // UNCOMMENT below if you want to add a GridLayout item
+                    /*
+                    this.layout.push({
+                        x: DragPos.x,
+                        y: DragPos.y,
+                        w: 1,
+                        h: 1,
+                        i: DragPos.i,
+                    }); 
+                    this.$refs.gridLayout.dragEvent('dragend', DragPos.i, DragPos.x,DragPos.y,1,1);
+                    try {  
                         this.$refs.gridLayout.$children[this.layout.length].$refs.item.style.display="block";
-                }, 100);  
-                */
-            }    
+                    } catch {
+                    }  
+                    */
+            }
         },
     },  
 });
